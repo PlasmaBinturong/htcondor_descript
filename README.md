@@ -1,2 +1,9 @@
 # htcondor_descript
-small tool to automatically generate the description file for the `condor_submit` command
+
+Small tool to automatically generate the description file for the
+`condor_submit` command.
+
+I thought this would be useful for some users of
+[htcondor](https://research.cs.wisc.edu/htcondor/) on a computer cluster that
+don't want to open a text file every time they need to run a job.
+
