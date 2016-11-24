@@ -43,6 +43,7 @@ ORDERED_PARAMS = (
     ('-ni',  'niceuser'             ,None),
     ('-p',   'priority'             ,None),
     ('-ra',  'rank'                 ,None),
+    ('-L',   'concurrency_limits'   ,None),
     ('-q',   'queue'                ,None)
     )
 
@@ -61,6 +62,7 @@ PREFERED_PARAMS = {
     'getenv'                : [True],
     'should_transfer_files' : ['NO'],
     'run_as_owner'          : [True], # Condor default: True (Unix) / False (Windows)
+    'concurrency_limits'    : [os.environ['USER'] + ':30']
     #'requirements'          : ['(TARGET.memory > 1024)'] # that didn't work for me
     #'Initialdir'           : os.path.abspath(outbase),
     #'universe'             : "vanilla",
