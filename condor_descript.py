@@ -147,7 +147,7 @@ def generate_description(description, executable, dir=None, base=None,
         outbase, _ = os.path.splitext(outfile)
     
     # override automatic outdir and outbase values by user-provided values.
-    if dir is not None: outdir = dir
+    if dir is not None: outdir = dir.rstrip('/')
     if base is not None: outbase = base
 
     # Load prefered parameters if needed
