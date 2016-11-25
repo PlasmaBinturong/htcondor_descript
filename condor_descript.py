@@ -23,6 +23,7 @@ from datetime import datetime
 
 # Executable: first, Queue: last.
 # (short option, description name, help text)
+# TODO: add default columns.
 ORDERED_PARAMS = (
     ('-u',   'universe'             ,None),
     ('-o',   'output'               ,None), # can contain {time}, {dir}, {base}
@@ -106,7 +107,8 @@ Examples:
 
 
 def generate_description(description, executable, dir=None, base=None,
-                         condor_defaults=False, timefmt='%Y%m%d-%Hh%Mm%S',
+                         condor_defaults=False, template=None,
+                         timefmt='%Y%m%d-%Hh%Mm%S',
                          **user_params):
     """
     - description    : filehandle or string;
@@ -154,7 +156,13 @@ def generate_description(description, executable, dir=None, base=None,
     params = {}
     if not condor_defaults:
         params.update(**PREFERED_PARAMS)
-        
+    
+    # Uses user-defined template to name the output, error and log files:
+    if template:
+        params['output'] = [t + '.stdout' for t in template]
+        params['error']  = [t + '.stderr' for t in template]
+        params['log']    = [t + '.log'    for t in template]
+
     # replace defaults by user-specified values
     for p,v in user_params.items():
         if v is None:
@@ -274,15 +282,19 @@ if __name__ == '__main__':
     #aa('-d', '--description','--desc', type=argparse.FileType('w'), default=sys.stdout,
     aa('description', nargs='?', type=argparse.FileType('w'), default=sys.stdout,
        help='File name to write description in. Optional [stdout].')
-    aa('--dir', help="string used to format arguments containing '{dir}'. "\
-                     "It uses `dirname description file` by default")
-    aa('--base', help="string used to format arguments containing '{base}'. "\
-                      "It uses `basename description file` (without extensions) "\
-                      "by default.")
+    aa('--dir',
+       help="string used to format arguments containing '{dir}'. It uses "\
+            "`dirname description file` by default")
+    aa('--base',
+       help="string used to format arguments containing '{base}'. It uses "\
+            "`basename description file` (without extensions) by default.")
+    aa('--template', nargs='+',
+       help="Name of output, error, and log files, without the extensions ("\
+            ".stdout, .stderr, .log respectively)")
     aa('--fromfile',
-       help=('Take arguments from columns of a space/tab tabulated file. The '
-             'first line must contain arguments names. These values will be '
-             'overriden by commandline options, with a warning.'))
+       help='Take arguments from columns of a space/tab tabulated file. The '\
+            'first line must contain arguments names. These values will be '\
+            'overriden by commandline options, with a warning.')
     #aa('--submit', action='store_true',
     #   help='Directly submit job to the cluster')
     aa('--condor-defaults', action='store_true',
