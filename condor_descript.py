@@ -43,9 +43,10 @@ ORDERED_PARAMS = (
     ('-ni',  'niceuser'             ,None),
     ('-p',   'priority'             ,None),
     ('-ra',  'rank'                 ,None),
-    ('-L',   'concurrency_limits'   ,None),
+    ('-cl',   'concurrency_limits'  ,None),
     ('-q',   'queue'                ,None)
     )
+# TODO: add equivalent options in capital letters to read from file.
 
 # use the Condor macros $(Cluster) and $(Process) to automatically name output
 # files. $(Cluster) : the submission ID (one per submission file)
@@ -56,7 +57,7 @@ PREFERED_PARAMS = {
     'output'                : [TEMPLATE + '.stdout'],
     'error'                 : [TEMPLATE + '.stderr'],
     'log'                   : [TEMPLATE + '.log'   ],
-    'notification'          : ['Always'],  # Condor default: Never
+    #'notification'          : ['Always'],  # Condor default: Never
     'notify_user'           : [os.environ['USER'] + '@biologie.ens.fr'],
     'request_memory'        : ['1G'],
     'getenv'                : [True],
@@ -86,13 +87,14 @@ DETAILS:
 Argument formatting:
     any argument can contain python formatting elements that will be converted:
       {time} : formatted time string. Use --timefmt to change format.
-      {dir}  : dirname of description file (-d option). '.' if stdout is used.
+      {dir}  : dirname of description file. '.' if stdout is used.
       {base} : basename of the description file.
                'condorjob_{time}' if stdout is used.
 
 Other Condor Arguments:
     Any other needed argument for Condor can be specified as the following:
     --{argumentname} {argumentvalue} [...].
+    See `man condor_submit for available arguments`
 
 Default Arguments:
     Unless `--condor-defaults` is used, this script has its own defaults:
@@ -103,8 +105,9 @@ Examples:
 """ % PREFERED_PARAMS_REPR
 
 
-def generate_description(description, executable, condor_defaults=False,
-                         timefmt='%Y%m%d-%Hh%Mm%S', **user_params):
+def generate_description(description, executable, dir=None, base=None,
+                         condor_defaults=False, timefmt='%Y%m%d-%Hh%Mm%S',
+                         **user_params):
     """
     - description    : filehandle or string;
     - executable     : the mandatory argument;
@@ -143,6 +146,10 @@ def generate_description(description, executable, condor_defaults=False,
         #print "outdir: %s" % outdir, "outfile %s" % outfile
         outbase, _ = os.path.splitext(outfile)
     
+    # override automatic outdir and outbase values by user-provided values.
+    if dir is not None: outdir = dir
+    if base is not None: outbase = base
+
     # Load prefered parameters if needed
     params = {}
     if not condor_defaults:
@@ -240,6 +247,20 @@ def parse_unknown_args(uargs):
     return uargdict
 
 
+# TODO: Use csv module
+def parse_fromfile(filename):
+    """Read condor arguments from space delimited table
+    The first line must contain the names of the arguments"""
+    with open(filename) as IN:
+        argnames = IN.next().split()
+        args_fromfile = {arg:[] for arg in argnames}
+        for line in IN:
+            args = line.split()
+            for argname, arg in zip(argnames, args):
+                args_fromfile[argname].append(arg)
+    return args_fromfile
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog=EPILOG,
@@ -253,6 +274,17 @@ if __name__ == '__main__':
     #aa('-d', '--description','--desc', type=argparse.FileType('w'), default=sys.stdout,
     aa('description', nargs='?', type=argparse.FileType('w'), default=sys.stdout,
        help='File name to write description in. Optional [stdout].')
+    aa('--dir', help="string used to format arguments containing '{dir}'. "\
+                     "It uses `dirname description file` by default")
+    aa('--base', help="string used to format arguments containing '{base}'. "\
+                      "It uses `basename description file` (without extensions) "\
+                      "by default.")
+    aa('--fromfile',
+       help=('Take arguments from columns of a space/tab tabulated file. The '
+             'first line must contain arguments names. These values will be '
+             'overriden by commandline options, with a warning.'))
+    #aa('--submit', action='store_true',
+    #   help='Directly submit job to the cluster')
     aa('--condor-defaults', action='store_true',
        help='Whether to use condor default arguments. (not this script defaults)')
     aa('--timefmt', default='%Y%m%d-%Hh%Mm%S',
@@ -260,11 +292,6 @@ if __name__ == '__main__':
     
     aac('executable')
     for shortopt, longopt, hlp in ORDERED_PARAMS:
-        #if longopt == "arguments":
-        #    aac(shortopt, '--' + longopt, action='append', help="Can be
-        #    specified multiple time. Will repeat the other lines to form one
-        #    block per 'arguments ='")
-        #else:
         aac(shortopt, '--' + longopt, nargs='+', help=hlp)
 
     args, uargs = parser.parse_known_args()
@@ -272,5 +299,14 @@ if __name__ == '__main__':
     # not defined in this script.
     dictargs = vars(args)
     dictargs.update(parse_unknown_args(uargs))
+    if args.fromfile:
+        args_fromfile = parse_fromfile(dictargs.pop('fromfile'))
+        for argname, arg in args_fromfile.iteritems():
+            if dictargs.get(argname) is not None:
+                print >>sys.stderr, ("Warning: argument '%s' from file will be"
+                                     " overriden by commandline")
+            else:
+                dictargs[argname] = arg
+
     generate_description(**dictargs)
 
