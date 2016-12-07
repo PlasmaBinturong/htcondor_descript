@@ -64,7 +64,7 @@ PREFERED_PARAMS = {
     'getenv'                : [True],
     'should_transfer_files' : ['NO'],
     'run_as_owner'          : [True], # Condor default: True (Unix) / False (Windows)
-    'concurrency_limits'    : [os.environ['USER'] + ':30']
+    'concurrency_limits'    : [os.environ['USER'] + ':34']
     #'requirements'          : ['(TARGET.memory > 1024)'] # that didn't work for me
     #'Initialdir'           : os.path.abspath(outbase),
     #'universe'             : "vanilla",
@@ -179,6 +179,12 @@ def generate_description(description, executable, dir=None, base=None,
             except AttributeError:
                 # This is not a string, do not format
                 pass
+            except IndexError:
+                print >>sys.stderr, "Error with value:", v[i]
+                print >>sys.stderr, "The only formatting characters allowed "\
+                        "are {dir}, {base} and {time}. To escape curly braces"\
+                        ", use {{ and }}."
+                sys.exit(1)
 
     get_param = params.get
     common_params = [p for _,p,_ in ORDERED_PARAMS if len(get_param(p, [])) == 1]
@@ -260,10 +266,14 @@ def parse_fromfile(filename):
     """Read condor arguments from space delimited table
     The first line must contain the names of the arguments"""
     with open(filename) as IN:
-        argnames = IN.next().split()
+        try:
+            argnames = IN.next().rstrip().split('\t')
+        except StopIteration:
+            print >>sys.stderr, "File %s is empty" % filename
+            sys.exit(1)
         args_fromfile = {arg:[] for arg in argnames}
         for line in IN:
-            args = line.split()
+            args = line.rstrip().split('\t')
             for argname, arg in zip(argnames, args):
                 args_fromfile[argname].append(arg)
     return args_fromfile
@@ -292,9 +302,10 @@ if __name__ == '__main__':
        help="Name of output, error, and log files, without the extensions ("\
             ".stdout, .stderr, .log respectively)")
     aa('--fromfile',
-       help='Take arguments from columns of a space/tab tabulated file. The '\
-            'first line must contain arguments names. These values will be '\
-            'overriden by commandline options, with a warning.')
+       help='Take arguments from columns of a tabulated file. The '\
+            'first line must contain arguments names (condor names or also '\
+            'options from this script). These values will be overriden by ' \
+            'commandline options, with a warning.')
     #aa('--submit', action='store_true',
     #   help='Directly submit job to the cluster')
     aa('--condor-defaults', action='store_true',
