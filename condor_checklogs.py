@@ -43,9 +43,8 @@ def termination_code(logfile):
 
 
 if __name__=='__main__':
-    try:
-        logfiles = sys.argv[1:]
-    except IndexError:
+    logfiles = sys.argv[1:]
+    if not logfiles:
         print >>sys.stderr, __doc__
         sys.exit(1)
 
