@@ -95,7 +95,7 @@ Argument formatting:
 Other Condor Arguments:
     Any other needed argument for Condor can be specified as the following:
     --{argumentname} {argumentvalue} [...].
-    See `man condor_submit for available arguments`
+    See `man condor_submit` for available arguments
 
 Default Arguments:
     Unless `--condor-defaults` is used, this script has its own defaults:
