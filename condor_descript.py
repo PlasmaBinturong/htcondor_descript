@@ -1,6 +1,6 @@
 #!/usr/bin/python2.7
 
-"""Generates the description file for `condor_submit`"""
+"""Generate a description file for `condor_submit`"""
 
 # TODO:
 #   - define an Error class
