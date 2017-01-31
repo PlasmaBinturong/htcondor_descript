@@ -192,6 +192,9 @@ def generate_description(description, executable, dir=None, base=None,
     perblock_params = [p for _,p,_ in ORDERED_PARAMS \
                               if (get_param(p) and p not in common_params_set)]
 
+    # TODO:
+    # Add extra params not known in ordered_params.
+
     # Open output description file.  Because both str and unicode are
     # subclasses of basestring.
     OUT = description if isinstance(description, file) else open(outdesc, 'w')
@@ -322,6 +325,7 @@ if __name__ == '__main__':
     # not defined in this script.
     dictargs = vars(args)
     dictargs.update(parse_unknown_args(uargs))
+    #print dictargs
     if args.fromfile:
         args_fromfile = parse_fromfile(dictargs.pop('fromfile'))
         for argname, arg in args_fromfile.iteritems():
