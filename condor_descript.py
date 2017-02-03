@@ -60,7 +60,7 @@ PREFERED_PARAMS = {
     'log'                   : [TEMPLATE + '.log'   ],
     #'notification'          : ['Always'],  # Condor default: Never
     'notify_user'           : [os.environ['USER'] + '@biologie.ens.fr'],
-    'request_memory'        : ['1G'],
+    'request_memory'        : ['1G'], # TODO: $(ncores) * 1024
     'getenv'                : [True],
     'should_transfer_files' : ['NO'],
     'run_as_owner'          : [True], # Condor default: True (Unix) / False (Windows)
@@ -79,8 +79,8 @@ PREFERED_PARAMS = {
     #'queue'                : 1
     }
 
-PREFERED_PARAMS_REPR = "\n".join('    %-21s: %s' % (p, PREFERED_PARAMS[p]) \
-                                    for p in ORDERED_PARAMS\
+PREFERED_PARAMS_REPR = "\n".join('    %-21s: %s' % (p, PREFERED_PARAMS[p])
+                                    for p in ORDERED_PARAMS
                                     if PREFERED_PARAMS.get(p))
 
 EPILOG="""
@@ -155,7 +155,8 @@ def generate_description(description, executable, dir=None, base=None,
     # Load prefered parameters if needed
     params = {}
     if not condor_defaults:
-        params.update(**PREFERED_PARAMS)
+        params.update(**PREFERED_PARAMS) # TODO: move this part outside, and
+        # add the defaults in the argparse.ArgumentParser
     
     # Uses user-defined template to name the output, error and log files:
     if template:
@@ -187,10 +188,12 @@ def generate_description(description, executable, dir=None, base=None,
                 sys.exit(1)
 
     get_param = params.get
-    common_params = [p for _,p,_ in ORDERED_PARAMS if len(get_param(p, [])) == 1]
-    common_params_set = set(common_params)
-    perblock_params = [p for _,p,_ in ORDERED_PARAMS \
-                              if (get_param(p) and p not in common_params_set)]
+    ordered_params_list = [p for _,p,_ in ORDERED_PARAMS if get_param(p)]
+    # Add unknown arguments
+    ordered_params_list.extend(p for p in params if p not in ordered_params_list)
+    single_params = [p for p in ordered_params_list if len(params[p]) == 1]
+    single_params_set = set(single_params)
+    perblock_params = [p for p in ordered_params_list if p not in single_params_set]
 
     # TODO:
     # Add extra params not known in ordered_params.
@@ -206,7 +209,7 @@ def generate_description(description, executable, dir=None, base=None,
         sys.exit(1)
 
     OUT.write("executable = %s\n" % executable_path)
-    for k in common_params:
+    for k in single_params:
         OUT.write("%s = %s\n" % (k, params.pop(k)[0]))
     
     if not perblock_params: # There is only one block
@@ -288,6 +291,7 @@ if __name__ == '__main__':
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     #g1 = parser.add_argument_group()
     condor_arg_group = parser.add_argument_group('Condor description arguments')
+    # TODO: nicer-looking printing help for the condor args
 
     aa = parser.add_argument
     aac = condor_arg_group.add_argument
@@ -301,7 +305,7 @@ if __name__ == '__main__':
     aa('--base',
        help="string used to format arguments containing '{base}'. It uses "\
             "`basename description file` (without extensions) by default.")
-    aa('--template', nargs='+',
+    aa('--template', nargs='+', # default=TEMPLATE,
        help="Name of output, error, and log files, without the extensions ("\
             ".stdout, .stderr, .log respectively)")
     aa('--fromfile',
