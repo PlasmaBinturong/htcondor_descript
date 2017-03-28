@@ -1,34 +1,44 @@
 #!/usr/bin/env python2.7
 
-"""Output logfiles indicating an error in the last run.
+"""Output logfiles indicating an error in the last run."""
 
-USAGE: ./condor_logs_check.py *condor.log
-"""
+# USAGE: ./condor_logs_check.py *condor.log
+
 
 
 import sys
 import re
+import argparse
 
 
 RE_RETURN = re.compile(r'\(return value (\d+)\)')
+RE_DATE = re.compile(r'00\d \([0-9.]+\) (\d+/\d+ \d+:\d+:\d+) ')
 #RE_SUBMITTED = re.compile(r'000 ')
 #RE_STARTED = re.compile(r'001 ')
 #RE_TERM = re.compile(r'005 ')
 
-states = {'000 ': 'submitted',
+STATES = {'000 ': 'submitted',
           '001 ': 'started',
-          '005 ': 'terminated'}
+          '004 ': 'evicted',
+          '005 ': 'terminated',
+          #'006 ': 'Image size updated',
+          '009 ': 'aborted' }
+
 
 def termination_code(logfile):
     """get return value of last run and check whether it was non-zero
     (return False if non-zero)"""
     state = None
+    date  = None
 
     termination_match = None
     with open(logfile) as log:
         for line in log:
             state_code = line[:4]
-            state = states.get(state_code) or state
+
+            if state_code in STATES:
+                state = STATES.get(state_code)
+                date = RE_DATE.match(line).group(1)
 
             m = RE_RETURN.search(line)
             if m:
@@ -38,28 +48,25 @@ def termination_code(logfile):
     except AttributeError:
         return_value = None
 
-    return state, return_value
-        
+    return state, date, return_value
 
 
-if __name__=='__main__':
-    logfiles = sys.argv[1:]
-    if not logfiles:
-        print >>sys.stderr, __doc__
-        sys.exit(1)
 
+def main(logfiles, show_all=False):
     count_failed = 0
     count_noterm = 0
     for logfile in logfiles:
-        state, return_value = termination_code(logfile)
+        state, date, return_value = termination_code(logfile)
         if state:
             if state == 'terminated':
                 if return_value != 0:
-                    print "Termination with error: %2d : %s" % (return_value,
-                                                                logfile)
+                    print "Termination with error at %s: %2d : %s" % \
+                                (date, return_value, logfile)
                     count_failed += 1
+                elif show_all:
+                    print "OK (%s): %s" % (date, logfile)
             else:
-                print "Not terminated (%s): %s" % (state, logfile)
+                print "Not terminated (%s at %s): %s" % (state, date,  logfile)
                 count_noterm += 1
         else:
             print >>sys.stderr, "WARNING: Invalid log file: %s" % logfile
@@ -69,5 +76,10 @@ if __name__=='__main__':
                                                          len(logfiles))
 
 
-
+if __name__=='__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('logfiles', nargs='+')
+    parser.add_argument('-a', '--show-all', action='store_true')
+    args = parser.parse_args()
+    main(**vars(args))
 
