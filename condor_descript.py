@@ -204,7 +204,7 @@ def generate_description(description, executable, dir=None, base=None,
     
     executable_path = find_executable(executable)
     if not executable_path:
-        print >>sys.stderr, ("Executable %s not in PATH. Please specify the "
+        print >>sys.stderr, ("Executable %r not in PATH. Please specify the "
                              "absolute or relative path") % executable
         sys.exit(1)
 
@@ -316,7 +316,7 @@ if __name__ == '__main__':
     #aa('--submit', action='store_true',
     #   help='Directly submit job to the cluster')
     aa('--condor-defaults', action='store_true',
-       help='Whether to use condor default arguments. (not this script defaults)')
+       help='Whether to use condor default arguments (not this script defaults).')
     aa('--timefmt', default='%Y%m%d-%Hh%Mm%S',
        help='time formatting (time of execution of this script)')
     
