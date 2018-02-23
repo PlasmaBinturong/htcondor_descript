@@ -4,8 +4,11 @@
 """Split a condor description file with many blocks. 
 Useful when there are too many blocks to be submitted at once.
 Although the submission might work up to 18000 blocks, it can be a good idea to
-take 5000 as an upper limit"""
+take 5000 as an upper limit.
 
+Output files are automatically created with a suffix: `-part1`, `-part2`, etc."""
+
+from sys import stderr
 import argparse
 import os.path
 
@@ -26,21 +29,26 @@ def read_blocks(descfile):
     return blocks
 
 
-def submitsplit(descfile, nparts=None, nblocks=MAX_NBLOCKS):
+def submitsplit(descfile, nparts=None, nblocks=MAX_NBLOCKS, dryrun=False):
     outbase, outext = os.path.splitext(descfile)
     out_template = outbase + '-part%d' + outext
     mainblock, *blocks = read_blocks(descfile)
     N = len(blocks)
     nparts = nparts or (N // nblocks + 1)
     n = N // nparts
-    i = 1
-    while i <= nparts:
-        with open(out_template % i, 'w') as out:
-            out.write(mainblock + '\n')
-            for block in blocks[(i-1)*n:i*n]:
-                out.write(block + '\n')
-        i += 1
+    if N % nparts:
+        n += 1
+    print('N=%d; nparts=%d; part length=%d.' % (N, nparts, n) , file=stderr)
 
+    for i in range(1,nparts+1):
+        partblocks = blocks[(i-1)*n:i*n]
+        if not dryrun:
+            with open(out_template % i, 'w') as out:
+                out.write(mainblock + '\n')
+                for block in partblocks:
+                    out.write(block + '\n')
+        print('part-%d: output %d blocks.' % (i, len(partblocks)), file=stderr)
+    
 
 
 if __name__ == '__main__':
@@ -50,6 +58,8 @@ if __name__ == '__main__':
                         help='how many output files [%(default)s]')
     parser.add_argument('-b', '--nblocks', default=MAX_NBLOCKS, type=int,
                         help='Maximum number of blocks per file [%(default)s]')
+    parser.add_argument('-n', '--dryrun', action='store_true', 
+                        help='Display counts only.')
     
     args = parser.parse_args()
     submitsplit(**vars(args))
