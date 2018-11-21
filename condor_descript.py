@@ -15,10 +15,11 @@
 
 import os
 import os.path
-import sys
+from sys import stdout, exit
 import argparse
 from distutils.spawn import find_executable
 from datetime import datetime
+import logging, errno
 
 
 # Executable: first, Queue: last.
@@ -138,7 +139,7 @@ def generate_description(description, executable, dir=None, base=None,
     
     generate_time = datetime.now().strftime(timefmt)
 
-    if description == sys.stdout:
+    if description == stdout:
         outdir = os.path.abspath(os.path.curdir)
         outbase = "condorjob_%s" % generate_time
     else:
@@ -181,11 +182,10 @@ def generate_description(description, executable, dir=None, base=None,
                 # This is not a string, do not format
                 pass
             except IndexError:
-                print >>sys.stderr, "Error with value:", v[i]
-                print >>sys.stderr, "The only formatting characters allowed "\
-                        "are {dir}, {base} and {time}. To escape curly braces"\
-                        ", use {{ and }}."
-                sys.exit(1)
+                logging.error("The only formatting characters allowed are "
+                              "{dir}, {base} and {time}. To escape curly "
+                              "braces, use {{ and }}.")
+                raise ValueError("Error formatting value: %s\n" % (v[i],))
 
     get_param = params.get
     ordered_params_list = [p for _,p,_ in ORDERED_PARAMS if get_param(p)]
@@ -204,9 +204,9 @@ def generate_description(description, executable, dir=None, base=None,
     
     executable_path = find_executable(executable)
     if not executable_path:
-        print >>sys.stderr, ("Executable %r not in PATH. Please specify the "
-                             "absolute or relative path") % executable
-        sys.exit(1)
+        raise FileNotFoundError(
+                      "Executable %r not in PATH. Please specify the "
+                      "absolute or relative path" % executable)
 
     OUT.write("executable = %s\n" % executable_path)
     for k in single_params:
@@ -220,9 +220,8 @@ def generate_description(description, executable, dir=None, base=None,
         # Determine number of jobs, and check if consistent across arguments
         njobs = len(params[perblock_params[0]])
         if not all(njobs == len(params[p]) for p in perblock_params):
-            print >>sys.stderr, ("Not the same number of arguments for each argument"
-                                 ". Must be 1 or the same anywhere")
-            sys.exit(1)
+            raise ValueError("Not the same number of arguments for each "
+                             "argument. Must be 1 or the same anywhere")
 
         for i in range(njobs):
             block = ''
@@ -234,7 +233,7 @@ def generate_description(description, executable, dir=None, base=None,
             block += "Queue\n\n"
             OUT.write(block)
 
-    if OUT != sys.stdout:
+    if OUT != stdout:
         OUT.close()
 
 
@@ -251,13 +250,11 @@ def parse_unknown_args(uargs):
         term = uargs.pop(0)
         if term.startswith('--') or term.startswith('-'):
             if (not values) and opt:
-                print >>sys.stderr, ("Invalid option. At least one value needed "
-                                     "for %s") % opt
-                sys.exit(1)
+                logging.error("Invalid option. At least one value needed for %s", opt)
+                exit(errno.EINVAL)
             if not uargs:
-                print >>sys.stderr, ("Invalid option. At least one value needed "
-                                     "for %s") % term
-                sys.exit(1)
+                logging.error("Invalid option. At least one value needed for %s", term)
+                exit(errno.EINVAL)
 
             opt=term
             values = uargdict.setdefault(opt.lstrip('-'), [])
@@ -275,8 +272,8 @@ def parse_fromfile(filename):
         try:
             argnames = IN.next().rstrip().split('\t')
         except StopIteration:
-            print >>sys.stderr, "File %s is empty" % filename
-            sys.exit(1)
+            logging.error("File %s is empty", filename)
+            exit(errno.EINVAL)
         args_fromfile = {arg:[] for arg in argnames}
         for line in IN:
             args = line.rstrip().split('\t')
@@ -296,8 +293,8 @@ if __name__ == '__main__':
     aa = parser.add_argument
     aac = condor_arg_group.add_argument
 
-    #aa('-d', '--description','--desc', type=argparse.FileType('w'), default=sys.stdout,
-    aa('description', nargs='?', type=argparse.FileType('w'), default=sys.stdout,
+    #aa('-d', '--description','--desc', type=argparse.FileType('w'), default=stdout,
+    aa('description', nargs='?', type=argparse.FileType('w'), default=stdout,
        help='File name to write description in. Optional [stdout].')
     aa('--dir',
        help="string used to format arguments containing '{dir}'. It uses "\
@@ -334,8 +331,7 @@ if __name__ == '__main__':
         args_fromfile = parse_fromfile(dictargs.pop('fromfile'))
         for argname, arg in args_fromfile.iteritems():
             if dictargs.get(argname) is not None:
-                print >>sys.stderr, ("Warning: argument '%s' from file will be"
-                                     " overriden by commandline")
+                logging.warning("Argument '%s' from file will be overriden by commandline")
             else:
                 dictargs[argname] = arg
 
