@@ -14,7 +14,7 @@
 #       - "Memory" in (Memory > 1024) is deprecated. Use TARGET.Memory instead
 
 import os
-import os.path
+import os.path as op
 from sys import stdout, exit
 import argparse
 from distutils.spawn import find_executable
@@ -67,7 +67,7 @@ PREFERED_PARAMS = {
     'run_as_owner'          : [True], # Condor default: True (Unix) / False (Windows)
     'concurrency_limits'    : [os.environ['USER'] + ':34']
     #'requirements'          : ['(TARGET.memory > 1024)'] # that didn't work for me
-    #'Initialdir'           : os.path.abspath(outbase),
+    #'Initialdir'           : op.abspath(outbase),
     #'universe'             : "vanilla",
     #'environment'          :
     #'priority'             : 0,
@@ -140,14 +140,14 @@ def generate_description(description, executable, dir=None, base=None,
     generate_time = datetime.now().strftime(timefmt)
 
     if description == stdout:
-        outdir = os.path.abspath(os.path.curdir)
+        outdir = op.abspath(op.curdir)
         outbase = "condorjob_%s" % generate_time
     else:
         outdesc = description.name if isinstance(description, file) else description
-        outdir, outfile = os.path.split(outdesc)
+        outdir, outfile = op.split(outdesc)
         if not outdir: outdir = '.'
         #print "outdir: %s" % outdir, "outfile %s" % outfile
-        outbase, _ = os.path.splitext(outfile)
+        outbase, _ = op.splitext(outfile)
     
     # override automatic outdir and outbase values by user-provided values.
     if dir is not None: outdir = dir.rstrip('/')
