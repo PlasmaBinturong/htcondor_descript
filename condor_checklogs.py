@@ -1,14 +1,16 @@
 #!/usr/bin/env python2.7
 
+
 """Output logfiles indicating an error in the last run."""
 
 # USAGE: ./condor_logs_check.py *condor.log
 
+from __future__ import print_function
 
 
-import sys
 import re
 import argparse
+import logging
 
 
 RE_RETURN = re.compile(r'\(return value (\d+)\)')
@@ -60,20 +62,20 @@ def main(logfiles, show_all=False):
         if state:
             if state == 'terminated':
                 if return_value != 0:
-                    print "Termination with error at %s: %2d : %s" % \
-                                (date, return_value, logfile)
+                    print("Termination with error at %s: %2d : %s" % \
+                                (date, return_value, logfile))
                     count_failed += 1
                 elif show_all:
-                    print "OK (%s): %s" % (date, logfile)
+                    print("OK (%s): %s" % (date, logfile))
             else:
-                print "Not terminated (%s at %s): %s" % (state, date,  logfile)
+                print("Not terminated (%s at %s): %s" % (state, date,  logfile))
                 count_noterm += 1
         else:
-            print >>sys.stderr, "WARNING: Invalid log file: %s" % logfile
+            logging.warning("Invalid log file: %s", logfile)
 
-    print "%d failed, %d not terminated (total: %d) " % (count_failed,
+    print("%d failed, %d not terminated (total: %d) " % (count_failed,
                                                          count_noterm,
-                                                         len(logfiles))
+                                                         len(logfiles)))
 
 
 if __name__=='__main__':
