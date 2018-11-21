@@ -10,7 +10,7 @@ Output files are automatically created with a suffix: `-part1`, `-part2`, etc.""
 
 from sys import stderr
 import argparse
-import os.path
+import os.path as op
 
 MAX_NBLOCKS = 5000
 
@@ -30,7 +30,7 @@ def read_blocks(descfile):
 
 
 def submitsplit(descfile, nparts=None, nblocks=MAX_NBLOCKS, dryrun=False):
-    outbase, outext = os.path.splitext(descfile)
+    outbase, outext = op.splitext(descfile)
     out_template = outbase + '-part%d' + outext
     mainblock, *blocks = read_blocks(descfile)
     N = len(blocks)
