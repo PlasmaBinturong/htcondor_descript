@@ -11,6 +11,8 @@ from __future__ import print_function
 import re
 import argparse
 import logging
+logger = logging.getLogger(__name__)
+#logging.basicConfig(format="%(levelname)s:%(message)s")
 
 
 RE_RETURN = re.compile(r'\(return value (\d+)\)')
@@ -71,7 +73,7 @@ def main(logfiles, show_all=False):
                 print("Not terminated (%s at %s): %s" % (state, date,  logfile))
                 count_noterm += 1
         else:
-            logging.warning("Invalid log file: %s", logfile)
+            logger.warning("Invalid log file: %s", logfile)
 
     print("%d failed, %d not terminated (total: %d) " % (count_failed,
                                                          count_noterm,

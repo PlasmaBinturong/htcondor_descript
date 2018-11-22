@@ -20,6 +20,8 @@ import argparse
 from distutils.spawn import find_executable
 from datetime import datetime
 import logging, errno
+logger = logging.getLogger(__name__)
+#logging.basicConfig(format='%(levelname)s:%(message)s')
 
 
 # Executable: first, Queue: last.
@@ -182,7 +184,7 @@ def generate_description(description, executable, dir=None, base=None,
                 # This is not a string, do not format
                 pass
             except IndexError:
-                logging.error("The only formatting characters allowed are "
+                logger.error("The only formatting characters allowed are "
                               "{dir}, {base} and {time}. To escape curly "
                               "braces, use {{ and }}.")
                 raise ValueError("Error formatting value: %s\n" % (v[i],))
@@ -250,10 +252,10 @@ def parse_unknown_args(uargs):
         term = uargs.pop(0)
         if term.startswith('--') or term.startswith('-'):
             if (not values) and opt:
-                logging.error("Invalid option. At least one value needed for %s", opt)
+                logger.error("Invalid option. At least one value needed for %s", opt)
                 exit(errno.EINVAL)
             if not uargs:
-                logging.error("Invalid option. At least one value needed for %s", term)
+                logger.error("Invalid option. At least one value needed for %s", term)
                 exit(errno.EINVAL)
 
             opt=term
@@ -272,7 +274,7 @@ def parse_fromfile(filename):
         try:
             argnames = IN.next().rstrip().split('\t')
         except StopIteration:
-            logging.error("File %s is empty", filename)
+            logger.error("File %s is empty", filename)
             exit(errno.EINVAL)
         args_fromfile = {arg:[] for arg in argnames}
         for line in IN:
@@ -331,7 +333,7 @@ if __name__ == '__main__':
         args_fromfile = parse_fromfile(dictargs.pop('fromfile'))
         for argname, arg in args_fromfile.iteritems():
             if dictargs.get(argname) is not None:
-                logging.warning("Argument '%s' from file will be overriden by commandline")
+                logger.warning("Argument '%s' from file will be overriden by commandline")
             else:
                 dictargs[argname] = arg
 
