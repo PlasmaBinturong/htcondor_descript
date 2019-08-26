@@ -12,11 +12,10 @@ import re
 import argparse
 import logging
 logger = logging.getLogger(__name__)
-#logging.basicConfig(format="%(levelname)s:%(message)s")
 
 
-RE_RETURN = re.compile(r'\(return value (\d+)\)')
-RE_DATE = re.compile(r'00\d \([0-9.]+\) (\d+/\d+ \d+:\d+:\d+) ')
+RE_RETURN = re.compile(r'\(([^()]+) (\d+)\)')
+RE_DATE = re.compile(r'0\d\d \([0-9.]+\) (\d+/\d+ \d+:\d+:\d+) ')
 #RE_SUBMITTED = re.compile(r'000 ')
 #RE_STARTED = re.compile(r'001 ')
 #RE_TERM = re.compile(r'005 ')
@@ -26,7 +25,9 @@ STATES = {'000 ': 'submitted',
           '004 ': 'evicted',
           '005 ': 'terminated',
           #'006 ': 'Image size updated',
-          '009 ': 'aborted' }
+          '009 ': 'aborted',
+          '022 ': 'disconnected',  # attempting to reconnect
+          '024 ': 'reconnection failed'}  # disconnected too long. rescheduling job
 
 
 def termination_code(logfile):
@@ -48,11 +49,14 @@ def termination_code(logfile):
             if m:
                 termination_match = m
     try:
-        return_value =  int(termination_match.group(1))
+        return_type = termination_match.group(1)
+        return_value =  int(termination_match.group(2))
     except AttributeError:
+        logger.warning('Could not match the return value code')
+        return_type = None
         return_value = None
 
-    return state, date, return_value
+    return state, date, return_type, return_value
 
 
 
@@ -60,17 +64,21 @@ def main(logfiles, show_all=False):
     count_failed = 0
     count_noterm = 0
     for logfile in logfiles:
-        state, date, return_value = termination_code(logfile)
+        try:
+            state, date, return_type, return_value = termination_code(logfile)
+        except BaseException as err:
+            err.args += ("At %r" % logfile,)
+            raise
         if state:
-            if state == 'terminated':
+            if state.startswith('terminated'):
                 if return_value != 0:
-                    print("Termination with error at %s: %2d : %s" % \
-                                (date, return_value, logfile))
+                    print("Termination with error at %s: %s %2d : %s" % \
+                                (date, return_type, return_value, logfile))
                     count_failed += 1
                 elif show_all:
                     print("OK (%s): %s" % (date, logfile))
             else:
-                print("Not terminated (%s at %s): %s" % (state, date,  logfile))
+                print("Not terminated (%s at %s): %s" % (state, date, logfile))
                 count_noterm += 1
         else:
             logger.warning("Invalid log file: %s", logfile)
@@ -81,6 +89,7 @@ def main(logfiles, show_all=False):
 
 
 if __name__=='__main__':
+    logging.basicConfig(format="%(levelname)s:%(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('logfiles', nargs='+')
     parser.add_argument('-a', '--show-all', action='store_true')

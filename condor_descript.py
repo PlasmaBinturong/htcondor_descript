@@ -13,16 +13,20 @@
 #       - niceuser written instead of nice_user
 #       - "Memory" in (Memory > 1024) is deprecated. Use TARGET.Memory instead
 
-import os
+import os, errno  # FileNotFoundError
 import os.path as op
-from sys import stdout, exit
+from sys import stdout, exit, version_info
 import argparse
 from distutils.spawn import find_executable
 from datetime import datetime
 import logging, errno
 logger = logging.getLogger(__name__)
-#logging.basicConfig(format='%(levelname)s:%(message)s')
+logging.basicConfig(format='%(levelname)s:%(lineno)s:%(message)s')
 
+
+if version_info.major < 3:
+    class FileNotFoundError(OSError):
+        pass
 
 # Executable: first, Queue: last.
 # (short option, description name, help text)
@@ -206,9 +210,10 @@ def generate_description(description, executable, dir=None, base=None,
     
     executable_path = find_executable(executable)
     if not executable_path:
-        raise FileNotFoundError(
-                      "Executable %r not in PATH. Please specify the "
-                      "absolute or relative path" % executable)
+        raise FileNotFoundError(errno.ENOENT,
+                      "Executable not in PATH. Please specify the "
+                      "absolute or relative path",
+                      executable)
 
     OUT.write("executable = %s\n" % executable_path)
     for k in single_params:
