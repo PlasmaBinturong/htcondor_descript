@@ -11,8 +11,10 @@ from __future__ import print_function
 import re
 import argparse
 import logging
+import datetime as dt
 logger = logging.getLogger(__name__)
 
+TIME_FORMAT = '%m/%d %H:%M:%S'
 
 RE_RETURN = re.compile(r'\(([^()]+) (\d+)\)')
 RE_DATE = re.compile(r'0\d\d \([0-9.]+\) (\d+/\d+ \d+:\d+:\d+) ')
@@ -90,10 +92,11 @@ def termination_code(logfile):
     return (state, date, return_type, return_value) + memories
 
 
-def main(logfiles, show_all=False, terminated_only=False, memory=False):
+def main(logfiles, show_all=False, terminated_only=False, memory=False, sort=False):
     count_failed = 0
     count_noterm = 0
     used_memory = []
+    outputs = []
     for logfile in logfiles:
         try:
             state, date, return_type, return_value, mem_used, _, mem_alloc = \
@@ -101,44 +104,55 @@ def main(logfiles, show_all=False, terminated_only=False, memory=False):
         except BaseException as err:
             err.args += ("At %r" % logfile,)
             raise
+        msg = None
         if state:
             if state.startswith('terminated'):
                 if memory:
                     used_memory.append(mem_used)
                     if mem_used > mem_alloc:
-                        print('Exceeded allocated memory! %d > %d (MB): %s' %
-                                (mem_used, mem_alloc, logfile))
+                        msg = 'Exceeded allocated memory! %d > %d (MB): %s' % (
+                                mem_used, mem_alloc, logfile)
                         count_failed += 1
                     else:
-                        print('OK: memory used %d <= %d memory allocated (MB): %s' %
-                                (mem_used, mem_alloc, logfile))
+                        msg = 'OK: memory used %d <= %d memory allocated (MB): %s' % (
+                                mem_used, mem_alloc, logfile)
                 else:
                     if return_value != 0:
-                        print("Termination with error at %s: %s %2d : %s" %
-                                    (date, return_type, return_value, logfile))
+                        msg = "Termination with error at %s: %s %2d : %s" % (
+                                date, return_type, return_value, logfile)
                         count_failed += 1
                     elif show_all or terminated_only:
-                        print("OK (%s): %s" % (date, logfile))
+                        msg = "OK (%s): %s" % (date, logfile)
             elif state in ended:
                 if memory:
                     if mem_used is not None:
-                        print("Condor termination (max memory = %s (MB)): %s" % (
-                              mem_used, logfile))
+                        msg = "Condor termination (max memory = %s (MB)): %s" % (
+                                mem_used, logfile)
                         used_memory.append(mem_used)
                 else:
-                    print("Condor termination (%s at %s): %s" % (state, date, logfile))
+                    msg = "Condor termination (%s at %s): %s" % (state, date, logfile)
                 count_noterm += 1
             else:
                 if not terminated_only:
                     if memory:
-                        print("Running (max_memory %s (MB)): %s" % (mem_used, logfile))
+                        msg = "Running (max_memory %s (MB)): %s" % (mem_used, logfile)
                         if mem_used is not None:
                             used_memory.append(mem_used)
                     else:
-                        print("Not terminated (%s at %s): %s" % (state, date, logfile))
+                        msg = "Not terminated (%s at %s): %s" % (state, date, logfile)
                 count_noterm += 1
         else:
             logger.warning("Invalid log file: %s", logfile)
+
+        if msg:
+            if sort:
+                outputs.append((dt.datetime.strptime(date, TIME_FORMAT), msg))
+            else:
+                print(msg)
+    
+    if sort:
+        for _, msg in sorted(outputs, key=lambda x: x[0]):
+            print(msg)
 
     if memory:
         print("%d exceeded, %d not terminated (max: %d MB, total: %d)"
@@ -159,6 +173,8 @@ if __name__=='__main__':
                         help='Only print the terminated jobs.')
     parser.add_argument('-m', '--memory', action='store_true',
                         help='Report jobs that exceeded allocated memory.')
+    parser.add_argument('-s', '--sort', action='store_true',
+                        help='Sort by time')
     args = parser.parse_args()
     main(**vars(args))
 
