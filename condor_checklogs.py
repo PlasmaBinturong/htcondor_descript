@@ -8,6 +8,7 @@
 from __future__ import print_function
 
 
+import sys
 import re
 import argparse
 import logging
@@ -120,6 +121,9 @@ def main(logfiles, show_all=False, terminated_only=False, memory=False,
     count_noterm = 0
     used_memory = []
     outputs = []
+    if not logfiles:
+        logfiles = [line.rstrip() for line in sys.stdin]
+
     for logfile in logfiles:
         try:
             state, date, return_type, return_value, mem_used, _, mem_alloc = \
@@ -214,7 +218,8 @@ def main(logfiles, show_all=False, terminated_only=False, memory=False,
 if __name__=='__main__':
     logging.basicConfig(format="%(levelname)s:%(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('logfiles', nargs='+')
+    parser.add_argument('logfiles', nargs='*',
+                        help='If not given, read filenames from stdin.')
     show_group = parser.add_mutually_exclusive_group()
     show_group.add_argument('-a', '--show-all', action='store_true')
     show_group.add_argument('-t', '--terminated-only', action='store_true',
