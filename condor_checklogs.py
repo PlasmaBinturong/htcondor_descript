@@ -205,9 +205,9 @@ def main(logfiles, show_all=False, terminated_only=False, memory=False,
             print(msg)
 
     if memory:
-        print("%d exceeded, %d not terminated (max: %d MB, total: %d)"
+        print("%d exceeded, %d not terminated (max: %s MB, total: %d)"
               % (count_failed, count_noterm,
-                  (max(used_memory) if used_memory else None),
+                  (max(used_memory) if used_memory else '-'),
                   len(logfiles)))
     else:
         print("%d failed, %d not terminated (total: %d) " % (count_failed,
