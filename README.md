@@ -7,7 +7,7 @@ computer cluster).
 - `submitsplit.py`: split too large submission files.
 - `condor_checklogs.py`: print stats on failed/succeeded jobs.
 
-# htcondor_descript
+# condor_descript
 
 Generate the description file for the `condor_submit` command.
 

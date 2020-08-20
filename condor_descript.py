@@ -109,7 +109,7 @@ Default Arguments:
     %s
 
 Examples:
-    ~/scripts/condor_descript.py subset6-7_runcodemlsh.condor.txt $HOME/scripts/codeml/run_codeml_separatedir.sh -a ENSGT00790000122969.subset{6,7}
+    condor_descript.py subset6-7_runcodemlsh.condor.txt $(which run_codeml_separatedir.sh) -a ENSGT00790000122969.subset{6,7}
 """ % PREFERED_PARAMS_REPR
 
 
@@ -289,7 +289,7 @@ def parse_fromfile(filename):
     return args_fromfile
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog=EPILOG,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -344,3 +344,6 @@ if __name__ == '__main__':
 
     generate_description(**dictargs)
 
+
+if __name__ == '__main__':
+    main()

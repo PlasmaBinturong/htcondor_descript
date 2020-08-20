@@ -48,10 +48,9 @@ def submitsplit(descfile, nparts=None, nblocks=MAX_NBLOCKS, dryrun=False):
                 for block in partblocks:
                     out.write(block + '\n')
         print('part-%d: output %d blocks.' % (i, len(partblocks)), file=stderr)
-    
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('descfile')
     parser.add_argument('-p', '--nparts', type=int,
@@ -63,3 +62,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     submitsplit(**vars(args))
+
+
+if __name__ == '__main__':
+    main()

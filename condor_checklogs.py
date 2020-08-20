@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 
 """Output logfiles indicating an error in the last run."""
@@ -115,7 +115,7 @@ def termination_code(logfile):
     return (state, date, return_type, return_value) + memories
 
 
-def main(logfiles, show_all=False, terminated_only=False, memory=False,
+def check_logs(logfiles, show_all=False, terminated_only=False, memory=False,
          sort=False, ignore_errors=False):
     count_failed = 0
     count_noterm = 0
@@ -215,7 +215,7 @@ def main(logfiles, show_all=False, terminated_only=False, memory=False,
                                                              len(logfiles)))
 
 
-if __name__=='__main__':
+def main():
     logging.basicConfig(format="%(levelname)s:%(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('logfiles', nargs='*',
@@ -231,5 +231,8 @@ if __name__=='__main__':
     parser.add_argument('-i', '--ignore-errors', action='store_true',
                         help='Skip files that raise errors and continue')
     args = parser.parse_args()
-    main(**vars(args))
+    check_logs(**vars(args))
 
+
+if __name__=='__main__':
+    main()
